@@ -2,7 +2,7 @@
 
 A 3D interactive ocean and terrain model of the Vesterålen archipelago in northern Norway, built with BabylonJS and Mapbox terrain data. 
 
-
+Demo can be found at: https://resist.hcilab.no/oceanmodel/
 
 ✅ Tested in Brave broweser and in Quest 3.
 
@@ -71,6 +71,11 @@ src/
 
 ```sh
 npm run build
+```
+
+Package and publish the build to cpanel (if ssh is set-up)
+```sh
+scp -r ./dist/* cpanel:~/public_html/resist/oceanmodel
 ```
 
 ## WebXR
