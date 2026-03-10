@@ -10,37 +10,20 @@ Demo can be found at: https://resist.hcilab.no/oceanmodel/
 
 The application renders a table-top scale 3D terrain from Mapbox Terrain-RGB tiles and overlays geographic data such as aquaculture site locations. It supports both standard browser (2D/3D) and WebXR (VR headset) modes.
 
-## Features
+### Tech stack:
+- [Vite](https://vite.dev/) + [TypeScript](https://www.typescriptlang.org/)
+- [Tailwind CSS](https://tailwindcss.com/) — utility-first styling
+- [BabylonJS](https://www.babylonjs.com/) v8 — 3D rendering engine + WebXR support
+- [Mapbox](https://docs.mapbox.com/) — DEM tiles for terrain elevation and texture
+- [Martini RTIN](https://github.com/mapbox/martini) — adaptive mesh simplification from elevation data
 
-- Real terrain geometry decoded from Mapbox Terrain-RGB DEM tiles
+### Features
+
+- Real terrain geometry decoded from Mapbox Terrain-RGB DEM tiles with adaptive mesh simplification via
 - Satellite texture overlay
-- Adaptive mesh simplification via [Martini RTIN](https://github.com/mapbox/martini)
 - GeoJSON point layer — Norwegian Aquaculture Registry sites (colour-coded by status)
 - WebXR support (VR headset with motion controllers)
 - Hexagonal/ports-and-adapters architecture (data layer has zero BabylonJS dependency)
-
-## Architecture
-
-```
-src/
-├── main.ts                              <- composition root only
-├── data/
-│   ├── types.ts                         <- LatLngAltLike, TerrainData, TerrainGeometry
-│   ├── geo.ts                           <- pure coordinate math (no BabylonJS)
-│   ├── ports/terrainProvider.ts         <- ITerrainProvider interface
-│   ├── adapters/mapboxTerrainAdapter.ts <- Mapbox tile fetch + DEM decode
-│   ├── TerrainBuilder.ts                <- Martini RTIN geometry builder
-│   └── loaders/geojsonLoader.ts         <- generic GeoJSON point loader
-├── scene/
-│   ├── SceneManager.ts                  <- Engine + Scene factory
-│   ├── TerrainMesh.ts                   <- BabylonJS mesh + coordinate API
-│   └── PointLayer.ts                    <- sphere markers for GeoJSON points
-├── xr/XRManager.ts                      <- WebXRDefaultExperience setup
-└── public/data/
-    └── Akvakulturregisteret150.geojson  <- 150 aquaculture sites, Vesterålen
-```
-
-**Layer rule:** `data/` never imports BabylonJS. Concrete adapters are wired only in `main.ts`.
 
 ## Getting Started
 
@@ -95,8 +78,30 @@ Using Immersive Web Emulator ([IWE](https://github.com/meta-quest/immersive-web-
 - Launch the desktop browser’s developer tool panel
 - Navigate to the “WebXR” tab to control the emulated device
 
+## Architecture
 
-## GeoJSON Data
+```
+src/
+├── main.ts                              <- composition root only
+├── data/
+│   ├── types.ts                         <- LatLngAltLike, TerrainData, TerrainGeometry
+│   ├── geo.ts                           <- pure coordinate math (no BabylonJS)
+│   ├── ports/terrainProvider.ts         <- ITerrainProvider interface
+│   ├── adapters/mapboxTerrainAdapter.ts <- Mapbox tile fetch + DEM decode
+│   ├── TerrainBuilder.ts                <- Martini RTIN geometry builder
+│   └── loaders/geojsonLoader.ts         <- generic GeoJSON point loader
+├── scene/
+│   ├── SceneManager.ts                  <- Engine + Scene factory
+│   ├── TerrainMesh.ts                   <- BabylonJS mesh + coordinate API
+│   └── PointLayer.ts                    <- sphere markers for GeoJSON points
+├── xr/XRManager.ts                      <- WebXRDefaultExperience setup
+└── public/data/
+    └── Akvakulturregisteret150.geojson  <- 150 aquaculture sites, Vesterålen
+```
+
+**Layer rule:** `data/` never imports BabylonJS. Concrete adapters are wired only in `main.ts`.
+
+### GeoJSON Data
 
 Static data files live in `public/data/` (served by Vite, not bundled).
 
