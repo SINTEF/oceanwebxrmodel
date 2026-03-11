@@ -45,7 +45,8 @@ export interface CreateMeshOptions {
 export class TerrainMesh {
   private readonly _scene: Scene;
   private _groundMesh!: Mesh;
-  private _anchor!: LatLngZoomLike;
+  /** Geographic centre of the tile — corresponds to world-space origin (0,0,0). */
+  private _meshCenter!: { lat: number; lng: number };
   private _meshScale = 1;
 
   constructor(scene: Scene) {
@@ -59,7 +60,7 @@ export class TerrainMesh {
   createMesh(geometry: TerrainGeometry, options: CreateMeshOptions = {}): Mesh {
     const { meshScale = 1 } = options;
 
-    this._anchor = geometry.anchor;
+    this._meshCenter = geometry.meshCenter;
     this._meshScale = meshScale;
 
     const normals = new Float32Array(geometry.positions.length);
@@ -91,12 +92,18 @@ export class TerrainMesh {
     return this._groundMesh;
   }
 
+  /** Geographic centre of the tile — world-space origin (0,0,0). */
+  get meshCenter(): { lat: number; lng: number } {
+    return this._meshCenter;
+  }
+
   /**
    * Converts a geographic coordinate to a BabylonJS world-space Vector3.
    * geo.ts outputs Z-up GIS (x=east, y=north, z=alt); BabylonJS is Y-up (x=east, y=alt, z=north).
+   * The origin (0,0,0) is the tile centre (meshCenter), not the user-supplied ANCHOR.
    */
   latLngToWorld(pos: LatLngAltLike | LatLngZoomLike): Vector3 {
-    const offset = latLngToOffset(pos, this._anchor);
+    const offset = latLngToOffset(pos, this._meshCenter);
     // Z-up GIS to BabylonJS Y-up: swap y (north) and z (altitude)
     return new Vector3(offset.x, offset.z, offset.y);
   }
@@ -114,11 +121,12 @@ export class TerrainMesh {
    * Converts a BabylonJS world-space X/Z coordinate back to a geographic coordinate.
    * Useful for translating XR controller ray-pick hit points into lat/lng.
    *
-   * @param x  World X (east-west in metres relative to anchor)
-   * @param z  World Z (north-south in metres relative to anchor)
+   * @param x  Scene X (divide by meshScale internally to get metres)
+   * @param z  Scene Z (divide by meshScale internally to get metres)
    */
   worldToLatLng(x: number, z: number): { lat: number; lng: number } {
-    return worldOffsetToLatLng(x, z, this._anchor);
+    // Scene space is meshScale × metric space; undo that before inverting.
+    return worldOffsetToLatLng(x / this._meshScale, z / this._meshScale, this._meshCenter);
   }
 
   /**

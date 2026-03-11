@@ -18,7 +18,7 @@ export function buildGeometry(
   options: BuildOptions = {}
 ): TerrainGeometry {
   const { maxError = 10, elevExaggeration = 1 } = options;
-  const { elevation, planeSize, satelliteUrl, anchor } = data;
+  const { elevation, planeSizeX, planeSizeZ, satelliteUrl, anchor, meshCenter } = data;
 
   const martini = new Martini(257);
   const marTile = martini.createTile(elevation);
@@ -40,9 +40,9 @@ export function buildGeometry(
     const nx = px / 256;
     const ny = py / 256;
 
-    positions[i * 3 + 0] = (nx - 0.5) * planeSize;                      // X = east
-    positions[i * 3 + 1] = elevation[py * 257 + px] * elevExaggeration;  // Y = altitude
-    positions[i * 3 + 2] = (0.5 - ny) * planeSize;                      // Z = north (flip tile Y)
+    positions[i * 3 + 0] = (nx - 0.5) * planeSizeX;                     // X = east
+    positions[i * 3 + 1] = elevation[py * 257 + px] * elevExaggeration; // Y = altitude
+    positions[i * 3 + 2] = (0.5 - ny) * planeSizeZ;                     // Z = north (flip tile Y)
 
     uvs[i * 2 + 0] = nx;       // U: 0=west, 1=east
     uvs[i * 2 + 1] = 1 - ny;   // V: flip for BabylonJS (V=1 is top/north)
@@ -50,5 +50,5 @@ export function buildGeometry(
 
   const indices = Array.from(triangles) as number[];
 
-  return { positions, indices, uvs, satelliteUrl, anchor };
+  return { positions, indices, uvs, satelliteUrl, anchor, meshCenter };
 }

@@ -198,7 +198,16 @@ export class MapboxTerrainAdapter implements ITerrainProvider {
     const { zoom } = anchor;
     const tile = lngLatToTile(anchor.lng, anchor.lat, zoom);
 
-    console.log(`Tile ${tile.z}/${tile.x}/${tile.y}, planeSize ${(tileSizeMetres(tile.x, tile.y, tile.z)).widthMetres.toFixed(0)} m`);
+    const bounds = tileBoundsLngLat(tile.x, tile.y, tile.z);
+    const meshCenter = {
+      lat: (bounds.north + bounds.south) / 2,
+      lng: (bounds.east  + bounds.west)  / 2,
+    };
+    const { widthMetres, heightMetres } = tileSizeMetres(tile.x, tile.y, tile.z);
+    console.log(
+      `Tile ${tile.z}/${tile.x}/${tile.y} | centre lat=${meshCenter.lat.toFixed(5)}, lng=${meshCenter.lng.toFixed(5)} | ` +
+      `size: ${widthMetres.toFixed(0)} m (EW) × ${heightMetres.toFixed(0)} m (NS)`
+    );
 
     const [demBitmap, satelliteUrl] = await Promise.all([
       fetchDEMTile(tile.x, tile.y, tile.z, this._token),
@@ -219,7 +228,7 @@ export class MapboxTerrainAdapter implements ITerrainProvider {
       `DEM decoded — ${minElev.toFixed(0)}–${maxElev.toFixed(0)} m ASL, range ${(maxElev - minElev).toFixed(0)} m`
     );
 
-    return { elevation, minElev, maxElev, satelliteUrl, planeSize: tileSizeMetres(tile.x, tile.y, tile.z).widthMetres, anchor };
+    return { elevation, minElev, maxElev, satelliteUrl, planeSizeX: widthMetres, planeSizeZ: heightMetres, meshCenter, anchor };
   }
 
   private async _debugShowBitmap(demBitmap: ImageBitmap): Promise<void> {

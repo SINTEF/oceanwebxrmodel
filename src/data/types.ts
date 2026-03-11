@@ -21,9 +21,13 @@ export interface TerrainData {
   maxElev: number;
   /** blob: URL for the satellite image — pass directly to BabylonJS Texture. */
   satelliteUrl: string;
-  /** Geographic width of the tile in metres at the anchor latitude. */
-  planeSize: number;
-  /** Geographic reference point used to anchor the mesh in world space. */
+  /** Tile width in metres (east-west). Used for mesh X axis. */
+  planeSizeX: number;
+  /** Tile height in metres (north-south). Used for mesh Z axis. */
+  planeSizeZ: number;
+  /** Geographic centre of the terrain tile — corresponds to world-space origin (0,0,0). */
+  meshCenter: { lat: number; lng: number };
+  /** Geographic reference point used to select the tile. */
   anchor: LatLngZoomLike;
 }
 
@@ -37,6 +41,8 @@ export interface TerrainGeometry {
   uvs: Float32Array;
   /** Passed through from TerrainData — blob: URL for satellite texture. */
   satelliteUrl: string;
+  /** Geographic centre of the tile — the true world-space origin (0,0,0) for coordinate conversions. */
+  meshCenter: { lat: number; lng: number };
   /** Passed through from TerrainData — used by scene layer for coordinate conversions. */
   anchor: LatLngZoomLike;
 }

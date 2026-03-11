@@ -19,7 +19,7 @@ import { initXR } from "./xr/XRManager";
 import { loadPointFeatures, type AquacultureProperties } from "./data/loaders/geojsonLoader";
 import { createPointLayer } from "./scene/PointLayer";
 import { createHolographicPanel } from "./ui/HolographicPanel";
-import { createSceneDebugHelpers } from "./scene/DebugHelpers";
+import { createSceneDebugHelpers, pinLatLng } from "./scene/DebugHelpers";
 import { dataUrl } from "./utils";
 
 import "./style.css";
@@ -63,12 +63,26 @@ const geometry = buildGeometry(terrainData, { maxError: MAX_ERROR, elevExaggerat
 
 const terrainMesh = new TerrainMesh(scene);
 const groundMesh = terrainMesh.createMesh(geometry, { meshScale: MESH_SCALE });
-if (DEBUG) createSceneDebugHelpers(scene, gui2D, groundMesh);
+if (DEBUG) {
+  createSceneDebugHelpers(scene, gui2D, groundMesh);
+
+  // Tile centre → should appear at the exact mesh centre (world-space 0, y, 0).
+  const centre = terrainMesh.meshCenter;
+  pinLatLng(centre.lat, centre.lng, terrainMesh, scene, { color: new Color3(1, 1, 1), label: "tile centre" });
+
+  // ANCHOR → the user-supplied reference point; will be offset from centre unless ANCHOR == tile centre.
+  pinLatLng(ANCHOR.lat, ANCHOR.lng, terrainMesh, scene, { color: new Color3(1, 1, 0), label: "ANCHOR" });
+
+  // Known landmark — Svolvær harbour, Lofoten (verifiable against satellite imagery).
+  pinLatLng(68.2346, 14.5681, terrainMesh, scene, { color: new Color3(1, 0.2, 0.2), label: "Svolvær" });
+
+  console.log("[debug] worldToLatLng(0,0) =", terrainMesh.worldToLatLng(0, 0), "(should match tile centre)");
+}
 
 const panelPos = terrainMesh.latLngToScaledWorld(ANCHOR);
 // panelPos.y += 0.0; // float above the terrain surface
 // panelPos.z += 0.0;
-createHolographicPanel(gui3D, panelPos);
+//createHolographicPanel(gui3D, panelPos);
 
 // ---------------------------------------------------------------------------
 // 4. WebXR
