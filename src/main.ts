@@ -18,13 +18,12 @@ import { buildGeometry } from "./data/TerrainBuilder";
 import { initXR } from "./xr/XRManager";
 import { loadPointFeatures, type AquacultureProperties } from "./data/loaders/geojsonLoader";
 import { createPointLayer } from "./scene/PointLayer";
-import { createHolographicPanel } from "./ui/HolographicPanel";
 import { createSceneDebugHelpers, pinLatLng } from "./scene/DebugHelpers";
 import { dataUrl } from "./utils";
 
 import "./style.css";
 
-const DEBUG = true;
+const DEBUG = import.meta.env.DEV;
 
 const ANCHOR = { lat: 68.8855387, lng: 15, zoom: 8 }; // Vesterålen, Norway
 //const ANCHOR = { lat: 35.3606583, lng: 138.7067638, zoom: 8 }; // Mount Fuji
@@ -51,7 +50,7 @@ const gui3D = new GUI3DManager(scene);
 
 const adapter = new MapboxTerrainAdapter(
   (import.meta as { env: Record<string, string> }).env.VITE_MAPBOX_TOKEN,
-  { debug: true }
+  { debug: DEBUG }
 );
 
 const terrainData = await adapter.fetchTerrain(ANCHOR);
@@ -78,11 +77,6 @@ if (DEBUG) {
 
   console.log("[debug] worldToLatLng(0,0) =", terrainMesh.worldToLatLng(0, 0), "(should match tile centre)");
 }
-
-const panelPos = terrainMesh.latLngToScaledWorld(ANCHOR);
-// panelPos.y += 0.0; // float above the terrain surface
-// panelPos.z += 0.0;
-//createHolographicPanel(gui3D, panelPos);
 
 // ---------------------------------------------------------------------------
 // 4. WebXR

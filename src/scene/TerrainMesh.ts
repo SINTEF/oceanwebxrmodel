@@ -1,6 +1,6 @@
 import type { Scene } from "@babylonjs/core/scene";
 import { Texture } from "@babylonjs/core/Materials/Textures/texture";
-import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
+import { PBRMaterial } from "@babylonjs/core/Materials/PBR/pbrMaterial";
 import { ShaderMaterial } from "@babylonjs/core/Materials/shaderMaterial";
 import { Effect } from "@babylonjs/core/Materials/effect";
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
@@ -76,8 +76,12 @@ export class TerrainMesh {
     vertexData.applyToMesh(this._groundMesh);
     this._groundMesh.scaling = new Vector3(meshScale, meshScale, meshScale);
 
-    const mat = new StandardMaterial("terrain-mat", this._scene);
-    mat.diffuseTexture = new Texture(geometry.satelliteUrl, this._scene);
+    // PBRMaterial with metallic=0, roughness=1 gives a fully matte surface —
+    // no specular highlight, which is appropriate for satellite imagery of terrain.
+    const mat = new PBRMaterial("terrain-mat", this._scene);
+    mat.albedoTexture = new Texture(geometry.satelliteUrl, this._scene);
+    mat.metallic = 0;
+    mat.roughness = 1;
     mat.backFaceCulling = false;
     this._groundMesh.material = mat;
 

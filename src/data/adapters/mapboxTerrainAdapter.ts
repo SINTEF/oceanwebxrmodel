@@ -53,8 +53,34 @@ async function fetchSatelliteTile(
   tz: number,
   token: string
 ): Promise<string> {
-  const url = `https://api.mapbox.com/v4/mapbox.satellite/${tz}/${tx}/${ty}@2x.jpg90?access_token=${token}`;
-  const blob = await fetch(url).then((r) => r.blob());
+  // Each tile at zoom z maps to a 4×4 grid of descendants at zoom z+2.
+  const zoomOffset = 2;
+  const childZ = tz + zoomOffset;
+  const gridSize = 2 ** zoomOffset; // 4
+  const baseX = tx * gridSize;
+  const baseY = ty * gridSize;
+  const childTiles = Array.from({ length: gridSize * gridSize }, (_, i) => ({
+    x: baseX + (i % gridSize),
+    y: baseY + Math.floor(i / gridSize),
+    col: i % gridSize,
+    row: Math.floor(i / gridSize),
+  }));
+
+  const tileSize = 512; // @2x tiles are 512×512
+  const canvas = new OffscreenCanvas(tileSize * gridSize, tileSize * gridSize);
+  const ctx = canvas.getContext("2d")!;
+
+  await Promise.all(
+    childTiles.map(async ({ x, y, col, row }) => {
+      const url = `https://api.mapbox.com/v4/mapbox.satellite/${childZ}/${x}/${y}@2x.jpg90?access_token=${token}`;
+      const blob = await fetch(url).then((r) => r.blob());
+      const bitmap = await createImageBitmap(blob);
+      ctx.drawImage(bitmap, col * tileSize, row * tileSize);
+      bitmap.close();
+    })
+  );
+
+  const blob = await canvas.convertToBlob({ type: "image/jpeg", quality: 0.92 });
   return URL.createObjectURL(blob);
 }
 
