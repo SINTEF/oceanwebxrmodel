@@ -25,9 +25,10 @@ import "./style.css";
 
 const DEBUG = import.meta.env.DEV;
 
-const ANCHOR = { lat: 68.8855387, lng: 15, zoom: 8 }; // Vesterålen, Norway
+// const ANCHOR = { lat: 68.8855387, lng: 15, zoom: 8 }; // Vesterålen, Norway
+const ANCHOR = { lat: 69.1, lng: 15.7997522, zoom: 7 }; // Vesterålen, Norway
 //const ANCHOR = { lat: 35.3606583, lng: 138.7067638, zoom: 8 }; // Mount Fuji
-const ELEV_EXAGGERATION = 1;
+const ELEV_EXAGGERATION = 2;
 // meshScale: zoom-10 tile ≈ 39 km wide; 0.00005 → ~2 m across (table-top)
 const MESH_SCALE = 0.00005;
 const MAX_ERROR = 20; // RTIN max error in metres — lower = more triangles, higher = more aggressive simplification
@@ -72,8 +73,9 @@ if (DEBUG) {
   // ANCHOR → the user-supplied reference point; will be offset from centre unless ANCHOR == tile centre.
   pinLatLng(ANCHOR.lat, ANCHOR.lng, terrainMesh, scene, { color: new Color3(1, 1, 0), label: "ANCHOR" });
 
-  // Known landmark — Svolvær harbour, Lofoten (verifiable against satellite imagery).
-  pinLatLng(68.2346, 14.5681, terrainMesh, scene, { color: new Color3(1, 0.2, 0.2), label: "Svolvær" });
+  
+  pinLatLng(69.3142957,16.0601352, terrainMesh, scene, { color: new Color3(1, 0.2, 0.2), label: "Andenes" });
+  pinLatLng(68.6938756,15.3958381, terrainMesh, scene, { color: new Color3(1, 0.2, 0.2), label: "Sortland" });
 
   console.log("[debug] worldToLatLng(0,0) =", terrainMesh.worldToLatLng(0, 0), "(should match tile centre)");
 }
@@ -105,5 +107,6 @@ createPointLayer(aquacultureFeatures, terrainMesh, scene, {
     p.status_lokalitet === "KLARERT"
       ? new Color3(0.1, 0.85, 0.2)
       : new Color3(1.0, 0.5, 0.0),
+  labelFn: (p) => `${p.navn} · ${p.status_lokalitet}`,
 });
 console.log(`Loaded ${aquacultureFeatures.length} aquaculture sites`);
