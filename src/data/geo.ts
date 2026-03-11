@@ -1,10 +1,10 @@
-import type { LatLngAltLike } from "./types";
+import type { LatLngAltLike, LatLngZoomLike } from "./types";
 
-export type { LatLngAltLike };
+export type { LatLngAltLike, LatLngZoomLike };
 
 export const EARTH_RADIUS = 6371010.0;
 
-function latLngToXY(position: LatLngAltLike): [number, number] {
+function latLngToXY(position: { lat: number; lng: number }): [number, number] {
   const lat = position.lat * (Math.PI / 180);
   const lng = position.lng * (Math.PI / 180);
   return [
@@ -22,8 +22,8 @@ function latLngToXY(position: LatLngAltLike): [number, number] {
  * east-west distances are accurate away from the equator.
  */
 export function latLngToOffset(
-  point: LatLngAltLike,
-  reference: LatLngAltLike
+  point: { lat: number; lng: number; altitude?: number },
+  reference: { lat: number; lng: number; altitude?: number }
 ): { x: number; y: number; z: number } {
   const [px, py] = latLngToXY(point);
   const [rx, ry] = latLngToXY(reference);
@@ -34,7 +34,7 @@ export function latLngToOffset(
   return {
     x: (px - rx) * scale,
     y: (py - ry) * scale,
-    z: point.altitude - reference.altitude,
+    z: (point.altitude ?? 0) - (reference.altitude ?? 0),
   };
 }
 
@@ -49,7 +49,7 @@ export function latLngToOffset(
 export function worldOffsetToLatLng(
   x: number,
   y: number,
-  originLatLng: LatLngAltLike
+  originLatLng: { lat: number; lng: number }
 ): { lat: number; lng: number } {
   const latPerMeter = 1 / ((Math.PI * EARTH_RADIUS) / 180);
   const lngPerMeter =

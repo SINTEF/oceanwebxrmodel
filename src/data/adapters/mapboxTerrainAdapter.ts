@@ -1,4 +1,4 @@
-import type { LatLngAltLike, TerrainData } from "../types";
+import type { LatLngZoomLike, TerrainData } from "../types";
 import type { ITerrainProvider } from "../ports/terrainProvider";
 
 // ---------------------------------------------------------------------------
@@ -13,6 +13,38 @@ function lngLatToTile(lng: number, lat: number, zoom: number) {
     ((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2) * n
   );
   return { x, y, z: zoom };
+}
+
+/**
+ * Returns the geographic bounding box of a Web Mercator tile in degrees.
+ *
+ * The latitude formula uses the inverse Gudermannian (sinh/atan) to invert the
+ * Mercator projection, which is non-linear — tiles near the poles span more
+ * degrees of latitude than equatorial tiles at the same zoom level.
+ */
+export function tileBoundsLngLat(tx: number, ty: number, tz: number) {
+  const n = 2 ** tz;
+  const west  = (tx / n) * 360 - 180;
+  const east  = ((tx + 1) / n) * 360 - 180;
+  const north = Math.atan(Math.sinh(Math.PI * (1 - (2 * ty)       / n))) * (180 / Math.PI);
+  const south = Math.atan(Math.sinh(Math.PI * (1 - (2 * (ty + 1)) / n))) * (180 / Math.PI);
+  return { north, south, east, west };
+}
+
+/**
+ * Returns the real-world dimensions of a Web Mercator tile in metres.
+ *
+ * Width applies the cosine correction for the centre latitude: Mercator stretches
+ * horizontal spacing toward the poles, so a degree of longitude at 60° is only
+ * half as wide in metres as at the equator.
+ * Height uses 110 540 m/° which is accurate to within ~1% for all latitudes.
+ */
+export function tileSizeMetres(tx: number, ty: number, tz: number): { widthMetres: number; heightMetres: number } {
+  const { north, south, east, west } = tileBoundsLngLat(tx, ty, tz);
+  const centerLat    = (north + south) / 2;
+  const widthMetres  = (east  - west)  * 111_320 * Math.cos(centerLat * (Math.PI / 180));
+  const heightMetres = (north - south) * 110_540;
+  return { widthMetres, heightMetres };
 }
 
 async function fetchSatelliteTile(
@@ -162,13 +194,11 @@ export class MapboxTerrainAdapter implements ITerrainProvider {
     this._debug = options.debug ?? false;
   }
 
-  async fetchTerrain(anchor: LatLngAltLike, zoom: number): Promise<TerrainData> {
+  async fetchTerrain(anchor: LatLngZoomLike): Promise<TerrainData> {
+    const { zoom } = anchor;
     const tile = lngLatToTile(anchor.lng, anchor.lat, zoom);
 
-    // Actual geographic width of one tile at this zoom and latitude (metres)
-    const planeSize =
-      (40075016.686 * Math.cos(anchor.lat * (Math.PI / 180))) / 2 ** zoom;
-    console.log(`Tile ${tile.z}/${tile.x}/${tile.y}, planeSize ${planeSize.toFixed(0)} m`);
+    console.log(`Tile ${tile.z}/${tile.x}/${tile.y}, planeSize ${(tileSizeMetres(tile.x, tile.y, tile.z)).widthMetres.toFixed(0)} m`);
 
     const [demBitmap, satelliteUrl] = await Promise.all([
       fetchDEMTile(tile.x, tile.y, tile.z, this._token),
@@ -189,7 +219,7 @@ export class MapboxTerrainAdapter implements ITerrainProvider {
       `DEM decoded — ${minElev.toFixed(0)}–${maxElev.toFixed(0)} m ASL, range ${(maxElev - minElev).toFixed(0)} m`
     );
 
-    return { elevation, minElev, maxElev, satelliteUrl, planeSize, anchor };
+    return { elevation, minElev, maxElev, satelliteUrl, planeSize: tileSizeMetres(tile.x, tile.y, tile.z).widthMetres, anchor };
   }
 
   private async _debugShowBitmap(demBitmap: ImageBitmap): Promise<void> {

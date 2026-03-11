@@ -7,7 +7,7 @@ import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { VertexData } from "@babylonjs/core/Meshes/mesh.vertexData";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { latLngToOffset, worldOffsetToLatLng } from "../data/geo";
-import type { LatLngAltLike, TerrainGeometry } from "../data/types";
+import type { LatLngAltLike, LatLngZoomLike, TerrainGeometry } from "../data/types";
 
 // ---------------------------------------------------------------------------
 // Normal-colour shader: visualises mesh normals as RGB (world-space).
@@ -45,7 +45,7 @@ export interface CreateMeshOptions {
 export class TerrainMesh {
   private readonly _scene: Scene;
   private _groundMesh!: Mesh;
-  private _anchor!: LatLngAltLike;
+  private _anchor!: LatLngZoomLike;
   private _meshScale = 1;
 
   constructor(scene: Scene) {
@@ -95,7 +95,7 @@ export class TerrainMesh {
    * Converts a geographic coordinate to a BabylonJS world-space Vector3.
    * geo.ts outputs Z-up GIS (x=east, y=north, z=alt); BabylonJS is Y-up (x=east, y=alt, z=north).
    */
-  latLngToWorld(pos: LatLngAltLike): Vector3 {
+  latLngToWorld(pos: LatLngAltLike | LatLngZoomLike): Vector3 {
     const offset = latLngToOffset(pos, this._anchor);
     // Z-up GIS to BabylonJS Y-up: swap y (north) and z (altitude)
     return new Vector3(offset.x, offset.z, offset.y);
@@ -106,7 +106,7 @@ export class TerrainMesh {
    * Use this when placing objects that should sit on the terrain surface (e.g. GeoJSON markers).
    * latLngToWorld() returns raw metric offsets; this returns scene-space positions.
    */
-  latLngToScaledWorld(pos: LatLngAltLike): Vector3 {
+  latLngToScaledWorld(pos: LatLngAltLike | LatLngZoomLike): Vector3 {
     return this.latLngToWorld(pos).scaleInPlace(this._meshScale);
   }
 

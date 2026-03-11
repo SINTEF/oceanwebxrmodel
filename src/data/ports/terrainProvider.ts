@@ -1,5 +1,5 @@
-import type { LatLngAltLike, TerrainData } from "../types";
+import type { LatLngZoomLike, TerrainData } from "../types";
 
 export interface ITerrainProvider {
-  fetchTerrain(anchor: LatLngAltLike, zoom: number): Promise<TerrainData>;
+  fetchTerrain(anchor: LatLngZoomLike): Promise<TerrainData>;
 }

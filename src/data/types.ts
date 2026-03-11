@@ -4,6 +4,13 @@ export type LatLngAltLike = {
   altitude: number;
 };
 
+/** Geographic anchor with a map zoom level — used for tile fetching and as the terrain origin. */
+export type LatLngZoomLike = {
+  lat: number;
+  lng: number;
+  zoom: number;
+};
+
 /** Raw terrain data returned by ITerrainProvider. No BabylonJS. */
 export interface TerrainData {
   /** 257×257 elevation grid in metres, normalized so the minimum value is 0. */
@@ -17,7 +24,7 @@ export interface TerrainData {
   /** Geographic width of the tile in metres at the anchor latitude. */
   planeSize: number;
   /** Geographic reference point used to anchor the mesh in world space. */
-  anchor: LatLngAltLike;
+  anchor: LatLngZoomLike;
 }
 
 /** Computed geometry ready for a 3D renderer. Produced by TerrainBuilder. No BabylonJS. */
@@ -31,5 +38,5 @@ export interface TerrainGeometry {
   /** Passed through from TerrainData — blob: URL for satellite texture. */
   satelliteUrl: string;
   /** Passed through from TerrainData — used by scene layer for coordinate conversions. */
-  anchor: LatLngAltLike;
+  anchor: LatLngZoomLike;
 }

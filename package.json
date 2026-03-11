@@ -16,6 +16,7 @@
     "@babylonjs/core": "^8.53.1",
     "@babylonjs/gui": "^8.53.1",
     "@babylonjs/loaders": "^8.53.1",
+    "@babylonjs/materials": "^8.54.3",
     "@mapbox/martini": "^0.2.0"
   }
 }
