@@ -15,9 +15,7 @@ import { TerrainMesh } from "./scene/TerrainMesh";
 import { MapboxTerrainAdapter } from "./data/adapters/mapboxTerrainAdapter";
 import { buildGeometry } from "./data/TerrainBuilder";
 import { initXR } from "./xr/XRManager";
-import { loadPointFeatures, type AquacultureProperties } from "./data/loaders/geojsonLoader";
-import { createPointLayer } from "./scene/PointLayer";
-import { createSceneDebugHelpers, pinLatLng } from "./scene/DebugHelpers";
+import type { AquacultureProperties } from "./data/loaders/geojsonLoader";
 import { dataUrl } from "./utils";
 
 import "./style.css";
@@ -61,6 +59,7 @@ const geometry = buildGeometry(terrainData, { maxError: MAX_ERROR, elevExaggerat
 const terrainMesh = new TerrainMesh(scene);
 const groundMesh = terrainMesh.createMesh(geometry, { meshScale: MESH_SCALE });
 if (DEBUG) {
+  const { createSceneDebugHelpers, pinLatLng } = await import("./scene/DebugHelpers");
   createSceneDebugHelpers(scene, gui2D, groundMesh);
 
   // Tile centre → should appear at the exact mesh centre (world-space 0, y, 0).
@@ -70,7 +69,6 @@ if (DEBUG) {
   // ANCHOR → the user-supplied reference point; will be offset from centre unless ANCHOR == tile centre.
   pinLatLng(ANCHOR.lat, ANCHOR.lng, terrainMesh, scene, { color: new Color3(1, 1, 0), label: "ANCHOR" });
 
-  
   pinLatLng(69.3142957,16.0601352, terrainMesh, scene, { color: new Color3(1, 0.2, 0.2), label: "Andenes" });
   pinLatLng(68.6938756,15.3958381, terrainMesh, scene, { color: new Color3(1, 0.2, 0.2), label: "Sortland" });
 
@@ -95,6 +93,10 @@ if (xrHelper) {
 // 5. GeoJSON point layer — Norwegian Aquaculture Registry
 // ---------------------------------------------------------------------------
 
+const [{ loadPointFeatures }, { createPointLayer }] = await Promise.all([
+  import("./data/loaders/geojsonLoader"),
+  import("./scene/PointLayer"),
+]);
 const aquacultureFeatures = await loadPointFeatures<AquacultureProperties>(
   dataUrl("Akvakulturregisteret150.geojson")
 );
