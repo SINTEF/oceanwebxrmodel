@@ -2,16 +2,13 @@ import type { Scene } from "@babylonjs/core/scene";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { CreateSphere } from "@babylonjs/core/Meshes/Builders/sphereBuilder";
-import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
 import { Mesh } from "@babylonjs/core/Meshes/mesh";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { ActionManager } from "@babylonjs/core/Actions/actionManager";
 import { ExecuteCodeAction } from "@babylonjs/core/Actions/directActions";
-import { AdvancedDynamicTexture } from "@babylonjs/gui/2D/advancedDynamicTexture";
-import { TextBlock } from "@babylonjs/gui/2D/controls/textBlock";
-import { Rectangle } from "@babylonjs/gui/2D/controls/rectangle";
 import type { PointFeature } from "../data/loaders/geojsonLoader";
 import type { TerrainMesh } from "./TerrainMesh";
+import { createBillboardLabel } from "./billboardUtils";
 
 export interface PointLayerOptions<P> {
   /** Diameter of each marker in scene units (default 0.05 = 1 km at meshScale 0.00005). */
@@ -44,28 +41,11 @@ function createTooltip(scene: Scene, markerDiameter: number): {
   const tooltipHeight = markerDiameter * 0.8;
   const tooltipWidth = tooltipHeight * 5;
 
-  const plane = CreatePlane("point-tooltip", { width: tooltipWidth, height: tooltipHeight }, scene);
-  plane.billboardMode = Mesh.BILLBOARDMODE_ALL;
-  plane.renderingGroupId = 1;
+  const { plane, textBlock: text } = createBillboardLabel("point-tooltip", tooltipWidth, tooltipHeight, 512, 96, scene);
   plane.isVisible = false;
-
-  const tex = AdvancedDynamicTexture.CreateForMesh(plane, 512, 96);
-
-  const bg = new Rectangle("tooltip-bg");
-  bg.background = "rgba(0,0,0,0.72)";
-  bg.color = "transparent";
-  bg.cornerRadius = 8;
-  bg.thickness = 0;
-  tex.addControl(bg);
-
-  const text = new TextBlock("tooltip-text", "");
   text.color = "white";
   text.fontSize = 44;
-  text.fontFamily = "monospace";
-  text.paddingLeft = "14px";
-  text.paddingRight = "14px";
   text.textWrapping = true;
-  bg.addControl(text);
 
   return {
     show(label: string, position: Vector3) {
@@ -137,7 +117,7 @@ export function createPointLayer<P>(
       })
     );
 
-    if (tooltip) {
+    if (tooltip && labelFn) {
       sphere.actionManager.registerAction(
         new ExecuteCodeAction(ActionManager.OnPointerOverTrigger, () => {
           const label = labelFn(feature.properties);

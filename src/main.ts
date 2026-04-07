@@ -9,7 +9,6 @@ import "@babylonjs/core/Materials/Node/Blocks";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { WebXRState } from "@babylonjs/core/XR/webXRTypes";
 import { AdvancedDynamicTexture } from "@babylonjs/gui/2D/advancedDynamicTexture";
-import { GUI3DManager } from "@babylonjs/gui/3D/gui3DManager";
 
 import { createScene } from "./scene/SceneManager";
 import { TerrainMesh } from "./scene/TerrainMesh";
@@ -25,7 +24,6 @@ import "./style.css";
 
 const DEBUG = import.meta.env.DEV;
 
-// const ANCHOR = { lat: 68.8855387, lng: 15, zoom: 8 }; // Vesterålen, Norway
 const ANCHOR = { lat: 69.1, lng: 15.7997522, zoom: 7 }; // Vesterålen, Norway
 //const ANCHOR = { lat: 35.3606583, lng: 138.7067638, zoom: 8 }; // Mount Fuji
 const ELEV_EXAGGERATION = 2;
@@ -42,7 +40,6 @@ const { scene } = createScene(canvas);
 
 // Shared GUI managers — one instance per scene, passed into all UI functions.
 const gui2D = AdvancedDynamicTexture.CreateFullscreenUI("ui", true, scene);
-const gui3D = new GUI3DManager(scene);
 
 // ---------------------------------------------------------------------------
 // 2. Data pipeline — fetch tiles, decode DEM, build RTIN geometry

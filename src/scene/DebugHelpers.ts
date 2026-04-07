@@ -5,7 +5,6 @@ import { AxesViewer } from "@babylonjs/core/Debug/axesViewer";
 import { CreateGround } from "@babylonjs/core/Meshes/Builders/groundBuilder";
 import { CreateSphere } from "@babylonjs/core/Meshes/Builders/sphereBuilder";
 import { CreateCylinder } from "@babylonjs/core/Meshes/Builders/cylinderBuilder";
-import { CreatePlane } from "@babylonjs/core/Meshes/Builders/planeBuilder";
 import { GridMaterial } from "@babylonjs/materials/grid/gridMaterial";
 import { Color3 } from "@babylonjs/core/Maths/math.color";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
@@ -14,6 +13,10 @@ import { TextBlock } from "@babylonjs/gui/2D/controls/textBlock";
 import { Rectangle } from "@babylonjs/gui/2D/controls/rectangle";
 import { Control } from "@babylonjs/gui/2D/controls/control";
 import type { TerrainMesh } from "./TerrainMesh";
+import { createBillboardLabel } from "./billboardUtils";
+
+// One material per unique colour — avoids redundant GPU state changes across multiple pins.
+const _pinMatCache = new Map<string, StandardMaterial>();
 
 /**
  * Adds a top-left debug label to an existing fullscreen GUI texture.
@@ -72,10 +75,15 @@ export function pinLatLng(
   const base = terrainMesh.latLngToScaledWorld({ lat, lng, altitude: 0 });
   console.log(`[pinLatLng] "${label}" → scene (${base.x.toFixed(5)}, ${base.y.toFixed(5)}, ${base.z.toFixed(5)})`);
 
-  const mat = new StandardMaterial(`pin-mat-${label}`, scene);
-  mat.diffuseColor = color;
-  mat.emissiveColor = color;
-  mat.disableLighting = true;
+  const matKey = color.toHexString();
+  if (!_pinMatCache.has(matKey)) {
+    const m = new StandardMaterial(`pin-mat-${matKey}`, scene);
+    m.diffuseColor = color;
+    m.emissiveColor = color;
+    m.disableLighting = true;
+    _pinMatCache.set(matKey, m);
+  }
+  const mat = _pinMatCache.get(matKey)!;
 
   // Thin stick from base to base + height
   const stick = CreateCylinder(`pin-stick-${label}`, { height, diameter: height * 0.06, tessellation: 6 }, scene);
@@ -93,26 +101,11 @@ export function pinLatLng(
   // Billboard label above the sphere — always faces the camera.
   const labelHeight = height * 0.4;
   const labelWidth = labelHeight * 4;
-  const labelPlane = CreatePlane(`pin-label-${label}`, { width: labelWidth, height: labelHeight }, scene);
+  const { plane: labelPlane, textBlock: text } = createBillboardLabel(`pin-label-${label}`, labelWidth, labelHeight, 512, 128, scene);
   labelPlane.position = new Vector3(base.x, sphereTop + labelHeight * 0.8, base.z);
-  labelPlane.billboardMode = Mesh.BILLBOARDMODE_ALL;
-  labelPlane.renderingGroupId = 1;
-
-  const labelTex = AdvancedDynamicTexture.CreateForMesh(labelPlane, 512, 128);
-  const bg = new Rectangle("pin-bg");
-  bg.background = "rgba(0,0,0,0.65)";
-  bg.color = "transparent";
-  bg.cornerRadius = 8;
-  bg.thickness = 0;
-  labelTex.addControl(bg);
-
-  const text = new TextBlock("pin-text", label);
+  text.text = label;
   text.color = `rgb(${Math.round(color.r * 255)},${Math.round(color.g * 255)},${Math.round(color.b * 255)})`;
   text.fontSize = 52;
-  text.fontFamily = "monospace";
-  text.paddingLeft = "12px";
-  text.paddingRight = "12px";
-  bg.addControl(text);
 }
 
 /**

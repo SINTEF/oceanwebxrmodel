@@ -137,7 +137,7 @@ function applyMedianFilter(raw: Float32Array, width: number, height: number): Fl
   return out;
 }
 
-function decodeTerrain(img: ImageBitmap): {
+function decodeTerrain(img: ImageBitmap, debug: boolean): {
   elevation: Float32Array;
   minElev: number;
   maxElev: number;
@@ -156,13 +156,15 @@ function decodeTerrain(img: ImageBitmap): {
     { label: "SE", row: 255, col: 255 },
     { label: "center", row: 128, col: 128 },
   ];
-  for (const { label, row, col } of samples) {
-    const i = (row * 256 + col) * 4;
-    const [r, g, b, a] = [data[i], data[i + 1], data[i + 2], data[i + 3]];
-    const elev = -10000 + (r * 65536 + g * 256 + b) * 0.1;
-    console.log(
-      `  DEM pixel ${label} (${col},${row}): R=${r} G=${g} B=${b} A=${a} → ${elev.toFixed(1)} m ASL`
-    );
+  if (debug) {
+    for (const { label, row, col } of samples) {
+      const i = (row * 256 + col) * 4;
+      const [r, g, b, a] = [data[i], data[i + 1], data[i + 2], data[i + 3]];
+      const elev = -10000 + (r * 65536 + g * 256 + b) * 0.1;
+      console.log(
+        `  DEM pixel ${label} (${col},${row}): R=${r} G=${g} B=${b} A=${a} → ${elev.toFixed(1)} m ASL`
+      );
+    }
   }
 
   // Step 1: Decode 256×256 elevation values from terrain-rgb encoding.
@@ -230,7 +232,7 @@ export class MapboxTerrainAdapter implements ITerrainProvider {
       lng: (bounds.east  + bounds.west)  / 2,
     };
     const { widthMetres, heightMetres } = tileSizeMetres(tile.x, tile.y, tile.z);
-    console.log(
+    if (this._debug) console.log(
       `Tile ${tile.z}/${tile.x}/${tile.y} | centre lat=${meshCenter.lat.toFixed(5)}, lng=${meshCenter.lng.toFixed(5)} | ` +
       `size: ${widthMetres.toFixed(0)} m (EW) × ${heightMetres.toFixed(0)} m (NS)`
     );
@@ -249,8 +251,8 @@ export class MapboxTerrainAdapter implements ITerrainProvider {
       this._debugShowBitmap(copyBitmap);
     }
 
-    const { elevation, minElev, maxElev } = decodeTerrain(demBitmap);
-    console.log(
+    const { elevation, minElev, maxElev } = decodeTerrain(demBitmap, this._debug);
+    if (this._debug) console.log(
       `DEM decoded — ${minElev.toFixed(0)}–${maxElev.toFixed(0)} m ASL, range ${(maxElev - minElev).toFixed(0)} m`
     );
 
