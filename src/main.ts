@@ -19,7 +19,7 @@ import { initXR } from "./xr/XRManager";
 import { loadPointFeatures, type AquacultureProperties } from "./data/loaders/geojsonLoader";
 import { createPointLayer } from "./scene/PointLayer";
 import { createHolographicPanel } from "./ui/HolographicPanel";
-import { createSceneDebugHelpers, pinLatLng } from "./scene/DebugHelpers";
+import { createDebugOverlay, createSceneDebugHelpers, pinLatLng } from "./scene/DebugHelpers";
 import { dataUrl } from "./utils";
 
 import "./style.css";
@@ -32,6 +32,7 @@ const ELEV_EXAGGERATION = 1;
 // meshScale: zoom-10 tile ≈ 39 km wide; 0.00005 → ~2 m across (table-top)
 const MESH_SCALE = 0.00005;
 const MAX_ERROR = 20; // RTIN max error in metres — lower = more triangles, higher = more aggressive simplification
+const TERRAIN_COUNT = 3;
 
 // ---------------------------------------------------------------------------
 // 1. BabylonJS — owns the canvas, WebGL context (xr-compatible) and render loop
@@ -78,6 +79,26 @@ if (DEBUG) {
 
   console.log("[debug] worldToLatLng(0,0) =", terrainMesh.worldToLatLng(0, 0), "(should match tile centre)");
 }
+const terrainMeshes = [groundMesh];
+
+const terrainWidth =
+  groundMesh.getBoundingInfo().boundingBox.extendSize.x * 2 * MESH_SCALE;
+const terrainGap = terrainWidth * 0.05;
+const terrainStep = terrainWidth + terrainGap;
+
+for (let terrainIndex = 1; terrainIndex < TERRAIN_COUNT; terrainIndex += 1) {
+  const clonedTerrain = groundMesh.clone(`terrain-${terrainIndex}`);
+  if (clonedTerrain) {
+    terrainMeshes.push(clonedTerrain);
+  }
+}
+
+const centerOffset = (TERRAIN_COUNT - 1) / 2;
+terrainMeshes.forEach((mesh, terrainIndex) => {
+  mesh.position.x = (terrainIndex - centerOffset) * terrainStep;
+});
+
+createDebugOverlay(gui2D, groundMesh, scene);
 
 const panelPos = terrainMesh.latLngToScaledWorld(ANCHOR);
 // panelPos.y += 0.0; // float above the terrain surface
@@ -88,7 +109,7 @@ const panelPos = terrainMesh.latLngToScaledWorld(ANCHOR);
 // 4. WebXR
 // ---------------------------------------------------------------------------
 
-const xrHelper = await initXR(scene, groundMesh);
+const xrHelper = await initXR(scene, terrainMeshes);
 if (xrHelper) {
   // When entering VR, offset the reference space so the user starts above the terrain.
   xrHelper.baseExperience.onStateChangedObservable.add((state) => {

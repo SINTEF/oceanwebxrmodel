@@ -8,11 +8,11 @@ import { WebXRDefaultExperience } from "@babylonjs/core/XR/webXRDefaultExperienc
  */
 export async function initXR(
   scene: Scene,
-  floorMesh: Mesh
+  floorMeshes: Mesh[]
 ): Promise<WebXRDefaultExperience | null> {
   try {
     const xrHelper = await WebXRDefaultExperience.CreateAsync(scene, {
-      floorMeshes: [floorMesh],
+      floorMeshes,
       uiOptions: {
         sessionMode: "immersive-vr", // swap to "immersive-ar" for passthrough AR
       },
