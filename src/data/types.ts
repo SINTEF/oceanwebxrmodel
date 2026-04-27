@@ -13,11 +13,15 @@ export type LatLngZoomLike = {
 
 /** Raw terrain data returned by ITerrainProvider. No BabylonJS. */
 export interface TerrainData {
-  /** 257×257 elevation grid in metres, normalized so the minimum value is 0. */
+  /**
+   * 257×257 elevation grid in raw metres ASL (negative = below sea level).
+   * Sea level (0 m ASL) maps to local Y=0 in the mesh, so the ocean surface
+   * plane can always be placed at scene Y=0.
+   */
   elevation: Float32Array;
-  /** Raw elevation of the lowest point in metres ASL (before normalization). */
+  /** Lowest elevation in metres ASL (negative when ocean floor is present). */
   minElev: number;
-  /** Raw elevation of the highest point in metres ASL (before normalization). */
+  /** Highest elevation in metres ASL. */
   maxElev: number;
   /** blob: URL for the satellite image — pass directly to BabylonJS Texture. */
   satelliteUrl: string;

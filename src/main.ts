@@ -13,7 +13,9 @@ import { AdvancedDynamicTexture } from "@babylonjs/gui/2D/advancedDynamicTexture
 import { createScene } from "./scene/SceneManager";
 import { TerrainMesh } from "./scene/TerrainMesh";
 import { MapboxTerrainAdapter } from "./data/adapters/mapboxTerrainAdapter";
+import { GeonorgeDepthAdapter } from "./data/adapters/geonorgeDepthAdapter";
 import { buildGeometry } from "./data/TerrainBuilder";
+import { createOceanSurface } from "./scene/OceanSurface";
 import { initXR } from "./xr/XRManager";
 import type { AquacultureProperties } from "./data/loaders/geojsonLoader";
 import { dataUrl } from "./utils";
@@ -44,12 +46,16 @@ const gui2D = AdvancedDynamicTexture.CreateFullscreenUI("ui", true, scene);
 //    No BabylonJS involved; concrete adapter wired here at the composition root.
 // ---------------------------------------------------------------------------
 
+// GeonorgeDepthAdapter is composed into MapboxTerrainAdapter — depth data is
+// fetched in parallel with the satellite tile and merged into the elevation
+// grid before Martini runs. No separate pipeline step needed.
 const adapter = new MapboxTerrainAdapter(
   (import.meta as { env: Record<string, string> }).env.VITE_MAPBOX_TOKEN,
-  { debug: DEBUG }
+  { debug: DEBUG, depthAdapter: new GeonorgeDepthAdapter() }
 );
 
 const terrainData = await adapter.fetchTerrain(ANCHOR);
+
 const geometry = buildGeometry(terrainData, { maxError: MAX_ERROR, elevExaggeration: ELEV_EXAGGERATION });
 
 // ---------------------------------------------------------------------------
@@ -58,6 +64,9 @@ const geometry = buildGeometry(terrainData, { maxError: MAX_ERROR, elevExaggerat
 
 const terrainMesh = new TerrainMesh(scene);
 const groundMesh = terrainMesh.createMesh(geometry, { meshScale: MESH_SCALE });
+
+createOceanSurface(scene, terrainData, { meshScale: MESH_SCALE });
+
 if (DEBUG) {
   const { createSceneDebugHelpers, pinLatLng } = await import("./scene/DebugHelpers");
   createSceneDebugHelpers(scene, gui2D, groundMesh);

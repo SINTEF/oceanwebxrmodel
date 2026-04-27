@@ -1,11 +1,12 @@
 import type { LatLngZoomLike, TerrainData } from "../types";
 import type { ITerrainProvider } from "../ports/terrainProvider";
+import type { GeonorgeDepthAdapter } from "./geonorgeDepthAdapter";
 
 // ---------------------------------------------------------------------------
 // Tile coordinate helpers (standard slippy-map / Web Mercator)
 // ---------------------------------------------------------------------------
 
-function lngLatToTile(lng: number, lat: number, zoom: number) {
+export function lngLatToTile(lng: number, lat: number, zoom: number) {
   const n = 2 ** zoom;
   const x = Math.floor(((lng + 180) / 360) * n);
   const latRad = lat * (Math.PI / 180);
@@ -137,7 +138,14 @@ function applyMedianFilter(raw: Float32Array, width: number, height: number): Fl
   return out;
 }
 
-function decodeTerrain(img: ImageBitmap, debug: boolean): {
+function decodeTerrain(
+  img: ImageBitmap,
+  debug: boolean,
+  /** Optional 256×256 depth grid from Geonorge (metres ASL, negative = ocean,
+   *  0 = land/no-data sentinel). When provided, Geonorge values replace Mapbox
+   *  values for underwater pixels, adding higher-accuracy seafloor detail. */
+  geonorgeGrid?: Float32Array
+): {
   elevation: Float32Array;
   minElev: number;
   maxElev: number;
@@ -184,6 +192,25 @@ function decodeTerrain(img: ImageBitmap, debug: boolean): {
   // Step 2: Median filter — removes speckle while preserving ridgelines and cliffs.
   const smoothed = applyMedianFilter(raw, 256, 256);
 
+  // Step 2b: Merge Geonorge bathymetry into ocean pixels (raw ASL space,
+  // before normalization so both grids are in the same units).
+  // Geonorge grid value 0 is the "no data" sentinel (land or outside coverage).
+  // Geonorge wins whenever it has ocean data — at low zoom levels Mapbox shows
+  // the sea as a flat 0 m plane (no sub-sea-level depth), so we intentionally
+  // do NOT require smoothed[i] < 0 here.
+  let mergedPixels = 0;
+  if (geonorgeGrid) {
+    for (let i = 0; i < 256 * 256; i++) {
+      const geoDepth = geonorgeGrid[i];
+      if (geoDepth < 0) {
+        // Both say ocean — Geonorge gives better depth detail.
+        smoothed[i] = geoDepth;
+        mergedPixels++;
+      }
+    }
+    console.log(`Geonorge merge: replaced ${mergedPixels} underwater pixels out of total ${256 * 256} pixels (${((mergedPixels / (256 * 256)) * 100).toFixed(2)}%)`);
+  }
+
   // Step 3: Build 257×257 Martini grid by duplicating the last row/col.
   const terrain = new Float32Array(257 * 257);
   let minElev = Infinity;
@@ -200,8 +227,10 @@ function decodeTerrain(img: ImageBitmap, debug: boolean): {
     }
   }
 
-  // Normalize so the lowest point sits at Y=0
-  for (let j = 0; j < terrain.length; j++) terrain[j] -= minElev;
+  // Do NOT normalize. Elevation values are kept in raw ASL metres so that sea
+  // level (0 m) always maps to local Y=0 in the mesh, and the OceanSurface plane
+  // can be placed unconditionally at scene Y=0. Ocean floor vertices are negative,
+  // land vertices are positive — the natural coordinate system.
 
   return { elevation: terrain, minElev, maxElev };
 }
@@ -211,15 +240,20 @@ function decodeTerrain(img: ImageBitmap, debug: boolean): {
 export interface MapboxTerrainAdapterOptions {
   /** When true, shows a raw DEM bitmap overlay in the browser corner for debugging. */
   debug?: boolean;
+  /** Optional Geonorge depth adapter. When provided, MAREANO bathymetry is
+   *  fetched in parallel and merged into the elevation grid for underwater pixels. */
+  depthAdapter?: GeonorgeDepthAdapter;
 }
 
 export class MapboxTerrainAdapter implements ITerrainProvider {
   private readonly _token: string;
   private readonly _debug: boolean;
+  private readonly _depthAdapter: GeonorgeDepthAdapter | undefined;
 
   constructor(token: string, options: MapboxTerrainAdapterOptions = {}) {
     this._token = token;
     this._debug = options.debug ?? false;
+    this._depthAdapter = options.depthAdapter;
   }
 
   async fetchTerrain(anchor: LatLngZoomLike): Promise<TerrainData> {
@@ -237,6 +271,10 @@ export class MapboxTerrainAdapter implements ITerrainProvider {
       `size: ${widthMetres.toFixed(0)} m (EW) × ${heightMetres.toFixed(0)} m (NS)`
     );
 
+    // Fetch DEM, satellite, and (optionally) Geonorge depth in parallel.
+    // Geonorge needs Mapbox minElev for calibration — so we do a two-step fetch:
+    // first DEM + satellite together, then decode DEM to get minElev, then Geonorge.
+    // In practice the Geonorge fetch is fast enough that sequential is acceptable.
     const [demBitmap, satelliteUrl] = await Promise.all([
       fetchDEMTile(tile.x, tile.y, tile.z, this._token),
       fetchSatelliteTile(tile.x, tile.y, tile.z, this._token),
@@ -251,7 +289,21 @@ export class MapboxTerrainAdapter implements ITerrainProvider {
       this._debugShowBitmap(copyBitmap);
     }
 
-    const { elevation, minElev, maxElev } = decodeTerrain(demBitmap, this._debug);
+    // First pass: decode without Geonorge to find minElev, needed to calibrate
+    // the Geonorge grayscale pixels to an absolute depth scale.
+    // ImageBitmap is not consumed by drawImage, so the bitmap can be reused.
+    const firstPass = decodeTerrain(demBitmap, this._debug);
+
+    // Fetch Geonorge depth grid calibrated to the Mapbox depth range.
+    const geonorgeGrid = this._depthAdapter
+      ? await this._depthAdapter.fetchDepthGrid(tile.x, tile.y, tile.z, firstPass.minElev)
+      : undefined;
+
+    // Second pass: re-decode + merge Geonorge into underwater pixels.
+    // If no Geonorge data was returned, reuse the first-pass result as-is.
+    const { elevation, minElev, maxElev } = geonorgeGrid
+      ? decodeTerrain(demBitmap, this._debug, geonorgeGrid)
+      : firstPass;
     if (this._debug) console.log(
       `DEM decoded — ${minElev.toFixed(0)}–${maxElev.toFixed(0)} m ASL, range ${(maxElev - minElev).toFixed(0)} m`
     );

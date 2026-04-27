@@ -32,7 +32,7 @@ export function createScene(canvas: HTMLCanvasElement): {
   // Exponential fog simulates light absorption at depth — objects fade into dark water with distance
   scene.fogMode = Scene.FOGMODE_EXP;
   scene.fogColor = new Color3(0.0, 0.06, 0.12);
-  scene.fogDensity = 0.05;
+  scene.fogDensity = 0.005;
 
   engine.runRenderLoop(() => scene.render());
   window.addEventListener("resize", () => engine.resize());
