@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "shipit": "scp -r ./dist/* cpanel:~/public_html/resist/oceanmodel"
   },
   "devDependencies": {
     "typescript": "~5.9.3",
@@ -17,6 +18,7 @@
     "@babylonjs/gui": "^8.53.1",
     "@babylonjs/loaders": "^8.53.1",
     "@babylonjs/materials": "^8.54.3",
-    "@mapbox/martini": "^0.2.0"
+    "@mapbox/martini": "^0.2.0",
+    "geotiff": "^3.0.5"
   }
 }

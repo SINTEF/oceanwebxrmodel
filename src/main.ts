@@ -15,7 +15,9 @@ import { TerrainMesh } from "./scene/TerrainMesh";
 import { MapboxTerrainAdapter } from "./data/adapters/mapboxTerrainAdapter";
 import { GeonorgeDepthAdapter } from "./data/adapters/geonorgeDepthAdapter";
 import { buildGeometry } from "./data/TerrainBuilder";
-import { createOceanSurface } from "./scene/OceanSurface";
+import { createOceanSurface, applyTemperatureOverlay } from "./scene/OceanSurface";
+import { NorkystTemperatureAdapter } from "./data/adapters/norkystTemperatureAdapter";
+import { lngLatToTile } from "./data/adapters/mapboxTerrainAdapter";
 import { initXR } from "./xr/XRManager";
 import type { AquacultureProperties } from "./data/loaders/geojsonLoader";
 import { dataUrl } from "./utils";
@@ -66,6 +68,13 @@ const terrainMesh = new TerrainMesh(scene);
 const groundMesh = terrainMesh.createMesh(geometry, { meshScale: MESH_SCALE });
 
 createOceanSurface(scene, terrainData, { meshScale: MESH_SCALE, terrainMesh: groundMesh });
+
+// Temperature overlay — fetched in parallel with the rest of the scene setup.
+const { x: tx, y: ty, z: tz } = lngLatToTile(ANCHOR.lng, ANCHOR.lat, ANCHOR.zoom);
+const tempGrid = await new NorkystTemperatureAdapter().fetchTemperatureGrid(tx, ty, tz);
+if (tempGrid) {
+  applyTemperatureOverlay(scene, terrainData, tempGrid, MESH_SCALE);
+}
 
 if (DEBUG) {
   const { createSceneDebugHelpers, pinLatLng } = await import("./scene/DebugHelpers");
