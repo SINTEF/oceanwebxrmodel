@@ -1,5 +1,4 @@
 import type { LatLngZoomLike, TerrainData } from "../types";
-import type { ITerrainProvider } from "../ports/terrainProvider";
 import type { GeonorgeDepthAdapter } from "./geonorgeDepthAdapter";
 
 // ---------------------------------------------------------------------------
@@ -240,7 +239,7 @@ export interface MapboxTerrainAdapterOptions {
   depthAdapter?: GeonorgeDepthAdapter;
 }
 
-export class MapboxTerrainAdapter implements ITerrainProvider {
+export class MapboxTerrainAdapter {
   private readonly _token: string;
   private readonly _debug: boolean;
   private readonly _depthAdapter: GeonorgeDepthAdapter | undefined;
