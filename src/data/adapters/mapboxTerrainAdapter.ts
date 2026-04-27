@@ -227,11 +227,6 @@ function decodeTerrain(
     }
   }
 
-  // Do NOT normalize. Elevation values are kept in raw ASL metres so that sea
-  // level (0 m) always maps to local Y=0 in the mesh, and the OceanSurface plane
-  // can be placed unconditionally at scene Y=0. Ocean floor vertices are negative,
-  // land vertices are positive — the natural coordinate system.
-
   return { elevation: terrain, minElev, maxElev };
 }
 

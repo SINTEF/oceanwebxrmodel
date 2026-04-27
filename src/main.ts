@@ -65,7 +65,7 @@ const geometry = buildGeometry(terrainData, { maxError: MAX_ERROR, elevExaggerat
 const terrainMesh = new TerrainMesh(scene);
 const groundMesh = terrainMesh.createMesh(geometry, { meshScale: MESH_SCALE });
 
-createOceanSurface(scene, terrainData, { meshScale: MESH_SCALE });
+createOceanSurface(scene, terrainData, { meshScale: MESH_SCALE, terrainMesh: groundMesh });
 
 if (DEBUG) {
   const { createSceneDebugHelpers, pinLatLng } = await import("./scene/DebugHelpers");
