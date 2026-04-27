@@ -108,7 +108,7 @@ export class TemperatureLayer {
     );
     // Sit just below the WaterMaterial plane (waterMesh.position.y = meshScale * 0.5)
     // so the temperature shows through the semi-transparent water.
-    mesh.position.y = meshScale * 0.4;
+    mesh.position.y = meshScale * 0.4 - 0.01;
     mesh.material   = mat;
 
     this._mesh = mesh;
